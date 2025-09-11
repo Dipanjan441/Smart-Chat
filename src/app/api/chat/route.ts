@@ -22,7 +22,7 @@ export async function POST(req: Request) {
                 success: false,
                 message: 'Request message is required'
             }), {
-                status: 200,
+                status: 400,
                 headers: { 'Content-Type': 'application/json' }
             })
         }
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         })
         return new Response(JSON.stringify({
             success: true,
-            response
+            message: response.text
         }), {
             status: 201,
             headers: { 'Content-Type': 'application/json' }
