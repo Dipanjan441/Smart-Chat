@@ -3,6 +3,10 @@
 import React, { useState } from 'react'
 import { MessageState, Sender } from './types';
 import { getFormattedMessageData, handleResponse } from './utils';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github.css";
 
 const page = () => {
     const [messages, setMessages] = useState<MessageState[]>([]);
@@ -15,9 +19,20 @@ const page = () => {
         const newMessage = getFormattedMessageData(data, Sender.YOU);
         setMessages((prev) => [...prev, newMessage]);
         setInput("");
-        const response = await handleResponse(data);
-        const responseNewMessage = getFormattedMessageData(response, Sender.SMART_CHAT);
-        setMessages((prev) => [...prev, responseNewMessage]);
+        // Add an empty message placeholder for the bot
+        const botMessage = getFormattedMessageData("", Sender.SMART_CHAT);
+        setMessages((prev) => [...prev, botMessage]);
+
+        // Stream response
+        await handleResponse(data, (chunk) => {
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === botMessage.id
+                        ? { ...msg, text: msg.text + chunk } // append chunk
+                        : msg
+                )
+            );
+        });
         setLoading(false);
     };
 
@@ -25,17 +40,38 @@ const page = () => {
         <div className="flex-1 flex flex-col">
             {/* Messages */}
             <div className="flex-1 p-4 space-y-3 bg-gray-50 flex flex-col">
-                {messages.length ? messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`px-4 py-2 rounded-lg max-w-[90%] ${msg.sender === Sender.YOU
-                            ? "self-end bg-blue-500 text-white"
-                            : "self-start bg-gray-200"
-                            }`}
-                    >
-                        {msg.text}
-                    </div>
-                )) : null}
+                {messages.length ? messages.map((msg, i) => {
+                    const isBot = msg.sender === Sender.SMART_CHAT;
+                    const isLast = i === messages.length - 1; // last message
+                    return (
+                        <div
+                            key={msg.id}
+                            className={`px-4 py-2 flex-col rounded-lg max-w-[90%] ${!isBot
+                                ? "self-end items-end bg-blue-500 text-white"
+                                : "self-start items-start bg-gray-200"
+                                }`}
+                        >
+                            <h4 className='text-2xl font-bold mb-1'>{msg.sender}</h4>
+                            {/* If it's the bot's last message and still loading, show typing dots */}
+                            {isBot && isLast && loading && !msg.text ? (
+                                <div className="flex gap-1">
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
+                                </div>
+                            ) : (
+                                <div className="prose max-w-none">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeHighlight]}
+                                    >
+                                        {msg.text}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }) : null}
             </div>
 
             {/* Input Bar */}
@@ -54,7 +90,7 @@ const page = () => {
                         }
                         rows={1}
                         onKeyDown={(e) => {
-                            if(e.key === "Enter" && !e.shiftKey) {
+                            if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 handleSend(input);
                             }
