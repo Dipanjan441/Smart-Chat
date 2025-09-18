@@ -10,7 +10,7 @@ export const getFormattedMessageData = (text: string, sender: Sender): MessageSt
     )
 }
 
-export const handleResponse = async (input: string, onStream: (chunk: string) => void) => {
+export const handleResponse = async (input: MessageState[], onStream: (chunk: string) => void) => {
     console.log('int', input)
     try {
         const apiData = await fetch('/api/chat-stream', {
@@ -20,6 +20,11 @@ export const handleResponse = async (input: string, onStream: (chunk: string) =>
         })
         if (!apiData.body) throw new Error("No response body");
         // console.log('apidata----------',apiData)
+        const contentType = apiData.headers.get("Content-Type");
+        if(contentType?.includes("application/json")){
+            const errorData = await apiData.json();
+            throw new Error(errorData.message || "Something went wrong!");
+        }
 
         const reader = apiData.body.getReader();
         const decoder = new TextDecoder();
@@ -32,6 +37,6 @@ export const handleResponse = async (input: string, onStream: (chunk: string) =>
             onStream(chunk); // send each chunk to UI
         }
     } catch (error: any) {
-        return error.message
+        onStream(error.message);
     }
 }

@@ -1,11 +1,11 @@
+import { MessageState, Sender } from "@/app/chat/types";
 import { GoogleGenAI } from "@google/genai";
-import { error } from "console";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_KEY });
 
 export async function POST(req: Request) {
     try {
-        const { reqMsg } = await req.json();
+        const { reqMsg }: {reqMsg: MessageState[]} = await req.json();
         if (!reqMsg) {
             return new Response(JSON.stringify({
                 success: false,
@@ -18,7 +18,11 @@ export async function POST(req: Request) {
         //stream data
         const response = await ai.models.generateContentStream({
             model: 'gemini-2.0-flash-001',
-            contents: { role: 'user', parts: [{ text: reqMsg }] }
+            // contents: { role: 'user', parts: [{ text: reqMsg }] }
+            contents: reqMsg.map((msg)=>({
+                role: msg.sender === Sender.YOU ? 'user' : 'model',
+                parts:[{text: msg.text}]
+            }))
         })
 
         // streamResult.stream is a ReadableStream of events/chunks
