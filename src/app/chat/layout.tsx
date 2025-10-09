@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { FiMenu } from 'react-icons/fi';
 import LeftNavigation from '../features/navigation/LeftNavigation';
+import Image from 'next/image';
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +25,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     <button onClick={() => setIsOpen(true)}>
                         <FiMenu size={24} />
                     </button>
-                    <h1 className="font-bold text-lg">Chat</h1>
+                    <h1 className="font-bold text-lg">
+                        <Image width={60} height={45} src='/images/logo.png' alt='logo' />
+                    </h1>
                 </div>
                 {/* Chat Body */}
                 <div className="flex-1 flex flex-col">
